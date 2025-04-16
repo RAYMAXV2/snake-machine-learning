@@ -55,7 +55,49 @@ class Game:
 
     def getFeatures(self):
         features = numpy.zeros(8)
-        
+        x, y = self.serpent[0], self.serpent[1]
+
+        #1. Est-ce qu’il y a un obstacle directement au dessus de la tête du serpent (0 ou 1) ?
+        features[0] = 1 if y == 0  or self.grille[x][y - 1] == 1 else 0
+
+        #2. Est-ce qu’il y a un obstacle directement en dessous de la tête du serpent (0 ou 1)?
+        features[1] = 1 if y == self.hauteur-1 or self.grille[x][y + 1] == 1 else 0
+
+        #3. Est-ce qu’il y a un obstacle directement à gauche de la tête du serpent (0 ou 1)?
+        features[2] = 1 if x == 0 or self.grille[x - 1][y] == 1 else 0
+
+        #4. Est-ce qu’il y a un obstacle directement à droite de la tête du serpent (0 ou 1)?
+        features[3] = 1 if x == self.largeur-1 or self.grille[x + 1][y] == 1 else 0
+
+        #5. Est-ce que le fruit se trouve au dessus (1), en dessous (-1) ou sur la même ligne (0) que la tête du serpent?
+        if self.fruit[1] < y:
+            features[4] = 1  
+        elif self.fruit[1] > y:
+            features[4] = -1  
+        else:
+            features[4] = 0 
+
+        #6. Est-ce que le fruit se trouve à droite (1), à gauche (-1) ou sur la même colonne(0) que la tête du serpent?
+        if self.fruit[0] > x:
+            features[5] = 1
+        elif self.fruit[0] < x:
+            features[5] = -1 
+        else:
+            features[5] = 0 
+
+        #7. Quelle est la direction du serpent (0, 1, 2 ou 3) ?
+        features[6] = self.direction
+
+        #8. A quelle distance se trouve le bord, compte tenu de la direction actuelle ?
+        if self.direction == 0:
+            features[7] = y
+        elif self.direction == 1:
+            features[7] = self.hauteur - 1 - y
+        elif self.direction == 2:
+            features[7] = x
+        else:
+            features[7] = self.largeur - 1 - x
+
         return features
     
     def print(self):
