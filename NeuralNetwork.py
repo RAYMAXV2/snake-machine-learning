@@ -41,4 +41,10 @@ class NeuralNetwork:
 
     def predict(self, inputs):
         return np.argmax(self.compute(inputs))
+    
 
+    def clone(self):
+        nn = NeuralNetwork(self.inputShape)
+        for layer in self.layers:
+            nn.layers.append(layer.clone())
+        return nn

@@ -3,7 +3,26 @@ from NeuralNetwork import *
 from snake import *
 
 def eval(sol, gameParams):
-    return 0
+    # On récupère les paramètres de la partie (voir main.py)
+    numberGame = gameParams["nbGames"]
+    height = gameParams["height"]
+    width = gameParams["width"]
+    scoreTotal = 0
+
+    # On crée une partie pour chaque individu
+    for _ in range(numberGame):
+        game = Game(height, width)
+        while game.enCours:
+            pred = sol.nn.predict(game.getFeatures())
+            game.direction = pred
+            game.refresh()
+        # TODO (maybe ?) Prendre en compte que le score est à 4 de base
+        apples = game.score 
+        stepsSinceLastApple = game.steps
+        scoreTotal += (1000 * apples + stepsSinceLastApple)
+    
+    sol.score = scoreTotal / (numberGame * height * width * 1000)
+    return sol.score
 
 '''
 Représente une solution avec
@@ -36,12 +55,90 @@ def initialization(taillePopulation, arch, gameParams):
     
     return population
 
-def optimize(taillePopulation, tailleSelection, pc, arch, gameParams, nbIterations, nbThreads, scoreMax):
+def optimize(taillePopulation, tailleSelection, pc, arch, gameParams, nbIterations, nbThreads, scoreMax, mr):
     population = initialization(taillePopulation, arch, gameParams)
 
-    '''
-    TODO : corps de l'algorithme principal
-    '''
+    for o in range(nbIterations):
+        new_population = []
 
+        while len(new_population) < taillePopulation - tailleSelection:
+            # Sélection des parents parmi les meilleurs
+            parent1 = numpy.random.choice(population[:tailleSelection])
+            parent2 = numpy.random.choice(population[:tailleSelection])
+
+            # On tire un nombre aléatoire entre 0 et 1
+            prob = numpy.random.rand()
+
+            # Création des enfants
+            if prob > pc:
+                # Clonage des parents
+                child1_nn = parent1.nn.clone()
+                child2_nn = parent2.nn.clone()
+            else:
+                # Croisement des parents
+                child1_nn = NeuralNetwork((arch[0],))
+                child2_nn = NeuralNetwork((arch[0],))
+                for i in range(1, len(arch)):
+                    child1_nn.addLayer(arch[i], "elu")
+                    child2_nn.addLayer(arch[i], "elu")
+
+                    # Mélange des poids et biais
+                    alpha = numpy.random.rand()
+                    layer_idx = i - 1  # index de la couche récemment ajoutée
+                    for j in range(child1_nn.layers[layer_idx].weights.shape[1]):
+                        child1_nn.layers[layer_idx].weights[:, j] = (
+                            alpha * parent1.nn.layers[layer_idx].weights[:, j]
+                            + (1 - alpha) * parent2.nn.layers[layer_idx].weights[:, j]
+                        )
+                        child2_nn.layers[layer_idx].weights[:, j] = (
+                            (1 - alpha) * parent1.nn.layers[layer_idx].weights[:, j]
+                            + alpha * parent2.nn.layers[layer_idx].weights[:, j]
+                        )
+                        child1_nn.layers[layer_idx].bias[j] = (
+                            alpha * parent1.nn.layers[layer_idx].bias[j]
+                            + (1 - alpha) * parent2.nn.layers[layer_idx].bias[j]
+                        )
+                        child2_nn.layers[layer_idx].bias[j] = (
+                            (1 - alpha) * parent1.nn.layers[layer_idx].bias[j]
+                            + alpha * parent2.nn.layers[layer_idx].bias[j]
+                        )
+                    
+                    # Mutation pour la couche layer_idx
+                    # Probabilité de mutation pour les biais
+                    pmBias = mr / child1_nn.layers[layer_idx].outputShape[0]
+                    for j in range(child1_nn.layers[layer_idx].bias.shape[0]):
+                        if numpy.random.rand() < pmBias:
+                            child1_nn.layers[layer_idx].bias[j] += numpy.random.randn() * 0.05
+                        if numpy.random.rand() < pmBias:
+                            child2_nn.layers[layer_idx].bias[j] -= numpy.random.randn() * 0.05
+                    
+                    # Probabilité de mutation pour les poids
+                    pmWeight = mr / child1_nn.layers[layer_idx].inputShape[0]
+                    for r in range(child1_nn.layers[layer_idx].weights.shape[0]):
+                        for c in range(child1_nn.layers[layer_idx].weights.shape[1]):
+                            if numpy.random.rand() < pmWeight:
+                                child1_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.05
+                            if numpy.random.rand() < pmWeight:
+                                child2_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.05
+            # Ajout des enfants à la nouvelle population
+            new_population.append(Individu(child1_nn))
+            new_population.append(Individu(child2_nn))
+
+        # Évaluation et tri de la nouvelle population
+        for sol in new_population:
+            eval(sol, gameParams)
+        new_population.sort(reverse=True, key=lambda sol: sol.score)
+
+        # Fusion de la nouvelle population avec les meilleurs de la génération actuelle
+        population = new_population + population[:tailleSelection]
+        population.sort(reverse=True, key=lambda sol: sol.score)
+        population = population[:taillePopulation]
+
+        print('Itération : ' + str(o))
+        print('Score de la meilleure solution : ' + str(population[0].score))
+
+        # Arrêt si le score maximum est atteint
+        if population[0].score >= scoreMax:
+            break
 
     return population[0].nn

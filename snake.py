@@ -55,10 +55,10 @@ class Game:
 
     def getFeatures(self):
         features = numpy.zeros(8)
-        x, y = self.serpent[0], self.serpent[1]
+        x, y = self.serpent[0]
 
         #1. Est-ce qu’il y a un obstacle directement au dessus de la tête du serpent (0 ou 1) ?
-        features[0] = 1 if y == 0  or self.grille[x][y - 1] == 1 else 0
+        features[0] = 1 if y == 0 or self.grille[x][y - 1] == 1 else 0
 
         #2. Est-ce qu’il y a un obstacle directement en dessous de la tête du serpent (0 ou 1)?
         features[1] = 1 if y == self.hauteur-1 or self.grille[x][y + 1] == 1 else 0

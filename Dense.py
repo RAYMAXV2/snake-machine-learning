@@ -33,3 +33,9 @@ class Dense:
         self.outputs = self.activationFunction(self.aggregations)
         return self.outputs
     
+    def clone(self):
+        copie = Dense(self.inputShape, self.outputShape, self.activationFunction, self.activationDerivate)
+        copie.bias = self.bias.copy()
+        copie.weights = self.weights.copy()
+        return copie
+    
