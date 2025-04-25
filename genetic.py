@@ -78,7 +78,6 @@ def optimize(taillePopulation, tailleSelection, pc, arch, gameParams, nbIteratio
         population.sort(reverse=True, key=lambda sol: sol.score)
 
         print('Itération : ' + str(o))
-        print('population : ' + str(len(population)))
         print('Score de la meilleure solution : ' + str(population[0].score))
 
         # Arrêt si le score maximum est atteint
@@ -138,15 +137,15 @@ def mutation(mr, child1_nn, child2_nn, layer_idx):
     pmBias = mr / child1_nn.layers[layer_idx].outputShape[0]
     for j in range(child1_nn.layers[layer_idx].bias.shape[0]):
         if numpy.random.rand() < pmBias:
-            child1_nn.layers[layer_idx].bias[j] += numpy.random.randn() * 0.1
+            child1_nn.layers[layer_idx].bias[j] += numpy.random.randn() * 0.15
         if numpy.random.rand() < pmBias:
-            child2_nn.layers[layer_idx].bias[j] += numpy.random.randn() * 0.1
+            child2_nn.layers[layer_idx].bias[j] += numpy.random.randn() * 0.15
     
     # Probabilité de mutation pour les poids
     pmWeight = mr / child1_nn.layers[layer_idx].inputShape[0]
     for r in range(child1_nn.layers[layer_idx].weights.shape[0]):
         for c in range(child1_nn.layers[layer_idx].weights.shape[1]):
             if numpy.random.rand() < pmWeight:
-                child1_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.1
+                child1_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.15
             if numpy.random.rand() < pmWeight:
-                child2_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.1
+                child2_nn.layers[layer_idx].weights[r, c] += numpy.random.randn() * 0.15
