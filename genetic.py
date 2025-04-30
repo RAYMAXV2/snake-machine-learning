@@ -103,6 +103,9 @@ def croisement(new_population, parent1, parent2, mr, pc, arch):
         # Clonage des parents
         child1_nn =Individu(parent1.nn.clone())
         child2_nn = Individu(parent2.nn.clone())
+        mutation(child1_nn, mr)
+        mutation(child2_nn, mr)
+        new_population.extend([child1_nn, child2_nn])
     else:
         # Croisement des parents
         child1_nn = NeuralNetwork(parent1.nn.inputShape)
@@ -128,58 +131,33 @@ def croisement(new_population, parent1, parent2, mr, pc, arch):
             child1_layer.bias = alpha_bias * parent1_layer.bias + (1 - alpha_bias) * parent2_layer.bias
             child2_layer.bias = (1 - alpha_bias) * parent1_layer.bias + alpha_bias * parent2_layer.bias
         # Mutation pour chacun des enfants
-        mutation2(Individu(child1_nn), mr)
-        mutation2(Individu(child2_nn), mr)
+        mutation(Individu(child1_nn), mr)
+        mutation(Individu(child2_nn), mr)
         # Ajout des enfants à la nouvelle population
         new_population.append(Individu(child1_nn))
         new_population.append(Individu(child2_nn))
 
 
-def mutation2(child, mr):
+def mutation(child, mr):
+
     for layer in child.nn.layers:
-        layerSize = layer.outputShape[0]
-        previousLayerSize = layer.inputShape[0]
+        out_size = layer.outputShape[0]
+        in_size = layer.inputShape[0]
 
-        pm_biais = mr / layerSize
-        pm_poids = mr / previousLayerSize
+        # Taux de mutation adaptatif
+        pm_b = mr / (out_size + 1e-6)
+        pm_w = mr / (in_size + 1e-6)
 
-        mask_biais = np.random.rand(layerSize) < pm_biais
-        mutations_biais = np.random.randn(layerSize) * 0.1
-        layer.bias += mask_biais * mutations_biais
+        # Mutation des biais
+        mask_b = numpy.random.rand(out_size) < pm_b
+        noise_b = numpy.random.randn(out_size) * 0.1
+        layer.bias += mask_b * noise_b
 
-        mask_poids = np.random.rand(previousLayerSize, layerSize) < pm_poids
-        mutations_poids = np.random.randn(previousLayerSize, layerSize) * 0.1
-        layer.weights += mask_poids * mutations_poids
+        # Mutation des poids
+        mask_w = numpy.random.rand(in_size, out_size) < pm_w
+        noise_w = numpy.random.randn(in_size, out_size) * 0.1
+        layer.weights += mask_w * noise_w
 
-def mutation(mr, child1_nn, child2_nn, layer_idx):
-    # Probabilité de mutation pour les biais
-    for layer in child1_nn.nn.layers:
-        layerSize = layer.outputShape[0]
-        previousLayerSize = layer.inputShape[0]
-
-        pm_biais = mr / layerSize
-        pm_poids = mr / previousLayerSize
-
-        mask_biais = np.random.rand(layerSize) < pm_biais
-        mutations_biais = np.random.randn(layerSize) * 0.1
-        layer.bias += mask_biais * mutations_biais
-
-        mask_poids = np.random.rand(previousLayerSize, layerSize) < pm_poids
-        mutations_poids = np.random.randn(previousLayerSize, layerSize) * 0.1
-        layer.weights += mask_poids * mutations_poids
-
-    for layer in child2_nn.nn.layers:
-        layerSize = layer.outputShape[0]
-        previousLayerSize = layer.inputShape[0]
-
-        pm_biais = mr / layerSize
-        pm_poids = mr / previousLayerSize
-
-        mask_biais = np.random.rand(layerSize) < pm_biais
-        mutations_biais = np.random.randn(layerSize) * 0.1
-        layer.bias += mask_biais * mutations_biais
-
-        mask_poids = np.random.rand(previousLayerSize, layerSize) < pm_poids
-        mutations_poids = np.random.randn(previousLayerSize, layerSize) * 0.1
-        layer.weights += mask_poids * mutations_poids
-
+        # Clipping pour stabiliser
+        numpy.clip(layer.bias, -5.0, 5.0, out=layer.bias)
+        numpy.clip(layer.weights, -5.0, 5.0, out=layer.weights)
